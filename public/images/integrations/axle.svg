@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 56" fill="none">
+  <rect x="2" y="10" width="36" height="36" rx="8" fill="#00A8FF"/>
+  <path d="M12 28H28M20 20V36" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+  <text x="48" y="38" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="700" fill="#FFFFFF">Axle</text>
+</svg>
