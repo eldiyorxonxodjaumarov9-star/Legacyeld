@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Suspense } from "react";
 import ChatWidget from "@/components/ChatWidget";
-import { AuthProvider } from "@/context/AuthProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -33,12 +32,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className="antialiased">
-        <AuthProvider>
-          {children}
-          <Suspense fallback={null}>
-            <ChatWidget />
-          </Suspense>
-        </AuthProvider>
+        {children}
+        <Suspense fallback={null}>
+          <ChatWidget />
+        </Suspense>
       </body>
     </html>
   );

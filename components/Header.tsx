@@ -1,10 +1,9 @@
 "use client";
 
-import { Menu, X, LogOut } from "lucide-react";
-import Link from "next/link";
+import { Menu, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthProvider";
 import { LogoIcon } from "@/components/Logo";
+import { SIGN_IN_URL } from "@/lib/site-config";
 
 const navLinks = [
   { label: "Services", href: "#services" },
@@ -15,6 +14,9 @@ const navLinks = [
   { label: "Support", href: "#support" },
 ];
 
+const signInClassName =
+  "hidden rounded-lg border border-accent-primary/30 bg-accent-primary/10 px-5 py-2 text-sm font-semibold text-accent-primary transition-all hover:border-accent-primary/60 hover:bg-accent-primary/20 sm:inline-block";
+
 function getSectionId(href: string) {
   return href.replace("#", "");
 }
@@ -22,11 +24,6 @@ function getSectionId(href: string) {
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("services");
-  const { user, loading, logout } = useAuth();
-
-  const displayName = user
-    ? `${user.firstName} ${user.lastName}`.trim()
-    : null;
 
   const updateActiveSection = useCallback(() => {
     const scrollPos = window.scrollY + 120;
@@ -128,29 +125,9 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
-          {!loading && user ? (
-            <div className="hidden items-center gap-3 sm:flex">
-              <span className="max-w-[160px] truncate text-sm font-semibold text-accent-primary">
-                {displayName}
-              </span>
-              <button
-                type="button"
-                onClick={() => logout()}
-                className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs font-medium text-text-muted transition-colors hover:border-white/20 hover:text-white"
-                title="Sign out"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                Sign Out
-              </button>
-            </div>
-          ) : (
-            <Link
-              href="/auth"
-              className="hidden rounded-lg border border-accent-primary/30 bg-accent-primary/10 px-5 py-2 text-sm font-semibold text-accent-primary transition-all hover:border-accent-primary/60 hover:bg-accent-primary/20 sm:inline-block"
-            >
-              Sign In
-            </Link>
-          )}
+          <a href={SIGN_IN_URL} className={signInClassName}>
+            Sign In
+          </a>
           <button
             type="button"
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -187,32 +164,13 @@ export default function Header() {
                 </a>
               );
             })}
-            {!loading && user ? (
-              <>
-                <div className="mt-2 rounded-lg border border-accent-primary/20 bg-accent-primary/5 px-4 py-3 text-center text-sm font-semibold text-accent-primary">
-                  {displayName}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    logout();
-                    setMobileOpen(false);
-                  }}
-                  className="mt-1 flex items-center justify-center gap-2 rounded-lg border border-white/10 px-4 py-3 text-sm font-medium text-text-muted"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sign Out
-                </button>
-              </>
-            ) : (
-              <Link
-                href="/auth"
-                onClick={() => setMobileOpen(false)}
-                className="mt-2 rounded-lg border border-accent-primary/30 bg-accent-primary/10 px-4 py-3 text-center text-sm font-semibold text-accent-primary"
-              >
-                Sign In
-              </Link>
-            )}
+            <a
+              href={SIGN_IN_URL}
+              onClick={() => setMobileOpen(false)}
+              className="mt-2 rounded-lg border border-accent-primary/30 bg-accent-primary/10 px-4 py-3 text-center text-sm font-semibold text-accent-primary"
+            >
+              Sign In
+            </a>
           </nav>
         </div>
       )}

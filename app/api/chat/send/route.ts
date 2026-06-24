@@ -3,7 +3,6 @@ import {
   addUserMessage,
   linkTelegramMessage,
 } from "@/lib/chat-store";
-import { extractToken, getUserFromToken } from "@/lib/session-store";
 
 function escapeHtml(text: string): string {
   return text
@@ -13,19 +12,6 @@ function escapeHtml(text: string): string {
 }
 
 export async function POST(request: NextRequest) {
-  const authToken = extractToken(
-    request.headers.get("authorization"),
-    request.headers.get("cookie")
-  );
-  const user = await getUserFromToken(authToken);
-
-  if (!user) {
-    return NextResponse.json(
-      { error: "Please register or sign in to use chat." },
-      { status: 401 }
-    );
-  }
-
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
 
@@ -60,13 +46,9 @@ export async function POST(request: NextRequest) {
 
   const chatMessage = addUserMessage(sessionId.trim(), trimmed);
 
-  const userName = `${user.firstName} ${user.lastName}`.trim();
-
   const telegramText = [
     "💬 <b>Website Live Chat</b>",
     "",
-    `👤 <b>Name:</b> ${escapeHtml(userName)}`,
-    `📧 <b>Email:</b> ${escapeHtml(user.email)}`,
     `🆔 <b>Session:</b> <code>${escapeHtml(sessionId.trim())}</code>`,
     "",
     `<b>Message:</b> ${escapeHtml(trimmed)}`,

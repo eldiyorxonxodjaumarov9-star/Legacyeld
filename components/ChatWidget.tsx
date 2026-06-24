@@ -1,9 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { MessageCircle, X, Send, Smile } from "lucide-react";
-import { useAuth } from "@/context/AuthProvider";
 
 type ChatMessage = {
   id: string;
@@ -32,10 +30,6 @@ function getSessionId(): string {
 }
 
 export default function ChatWidget() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const { user, loading, getToken } = useAuth();
-
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
   const [input, setInput] = useState("");
@@ -50,26 +44,11 @@ export default function ChatWidget() {
   }, []);
 
   useEffect(() => {
-    if (searchParams.get("chat") === "open" && user) {
-      setOpen(true);
-    }
-  }, [searchParams, user]);
-
-  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleOpenChat = useCallback(() => {
-    if (loading) return;
-    if (!user) {
-      router.push("/auth?from=chat");
-      return;
-    }
-    setOpen(true);
-  }, [loading, user, router]);
-
   const pollMessages = useCallback(async () => {
-    if (!sessionId || !user) return;
+    if (!sessionId) return;
 
     try {
       const res = await fetch(
@@ -92,26 +71,20 @@ export default function ChatWidget() {
     } catch {
       // silent poll failure
     }
-  }, [sessionId, user]);
+  }, [sessionId]);
 
   useEffect(() => {
-    if (!open || !sessionId || !user) return;
+    if (!open || !sessionId) return;
 
     pollMessages();
     const interval = setInterval(pollMessages, 2500);
     return () => clearInterval(interval);
-  }, [open, sessionId, user, pollMessages]);
+  }, [open, sessionId, pollMessages]);
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     const text = input.trim();
-    if (!text || !sessionId || sending || !user) return;
-
-    const authToken = getToken();
-    if (!authToken) {
-      router.push("/auth?from=chat");
-      return;
-    }
+    if (!text || !sessionId || sending) return;
 
     setSending(true);
     setInput("");
@@ -128,19 +101,11 @@ export default function ChatWidget() {
     try {
       const res = await fetch("/api/chat/send", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, message: text }),
       });
 
       const data = await res.json();
-
-      if (res.status === 401) {
-        router.push("/auth?from=chat");
-        return;
-      }
 
       if (!res.ok) throw new Error(data.error);
 
@@ -165,7 +130,7 @@ export default function ChatWidget() {
     return (
       <button
         type="button"
-        onClick={handleOpenChat}
+        onClick={() => setOpen(true)}
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#ef6c00] text-white shadow-lg shadow-[#ef6c00]/40 transition-transform hover:scale-105"
         aria-label="Open chat"
       >
@@ -183,9 +148,7 @@ export default function ChatWidget() {
           </p>
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-green-500" />
-            <span className="text-xs text-[#1a1a1a]/80">
-              {user ? `${user.firstName} · Online` : "Online"}
-            </span>
+            <span className="text-xs text-[#1a1a1a]/80">Online</span>
           </div>
         </div>
         <button
@@ -229,14 +192,14 @@ export default function ChatWidget() {
                 }}
                 placeholder="Type your message..."
                 rows={2}
-                disabled={sending || !user}
+                disabled={sending}
                 className="flex-1 resize-none text-sm text-gray-800 outline-none placeholder:text-gray-400 disabled:opacity-50"
               />
               <div className="flex flex-col gap-1">
                 <Smile className="h-4 w-4 text-gray-400" />
                 <button
                   type="submit"
-                  disabled={sending || !input.trim() || !user}
+                  disabled={sending || !input.trim()}
                   className="text-[#ef6c00] disabled:opacity-40"
                   aria-label="Send message"
                 >
