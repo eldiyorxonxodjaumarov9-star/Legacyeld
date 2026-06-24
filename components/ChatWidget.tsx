@@ -34,6 +34,7 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState("");
   const [activeTab, setActiveTab] = useState<"chat" | "whatsapp">("chat");
   const lastPollRef = useRef(0);
@@ -47,12 +48,20 @@ export default function ChatWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const resolveSessionId = useCallback(() => {
+    if (sessionId) return sessionId;
+    const id = getSessionId();
+    setSessionId(id);
+    return id;
+  }, [sessionId]);
+
   const pollMessages = useCallback(async () => {
-    if (!sessionId) return;
+    const sid = sessionId || getSessionId();
+    if (!sid) return;
 
     try {
       const res = await fetch(
-        `/api/chat/messages?sessionId=${encodeURIComponent(sessionId)}&since=${lastPollRef.current}`
+        `/api/chat/messages?sessionId=${encodeURIComponent(sid)}&since=${lastPollRef.current}`
       );
       const data = await res.json();
 
@@ -74,24 +83,27 @@ export default function ChatWidget() {
   }, [sessionId]);
 
   useEffect(() => {
-    if (!open || !sessionId) return;
+    if (!open) return;
 
     pollMessages();
     const interval = setInterval(pollMessages, 2500);
     return () => clearInterval(interval);
-  }, [open, sessionId, pollMessages]);
+  }, [open, pollMessages]);
 
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSend(e?: React.SyntheticEvent) {
+    e?.preventDefault();
+
     const text = input.trim();
-    if (!text || !sessionId || sending) return;
+    const sid = resolveSessionId();
+    if (!text || !sid || sending) return;
 
     setSending(true);
+    setError(null);
     setInput("");
 
     const optimistic: ChatMessage = {
       id: `temp-${Date.now()}`,
-      sessionId,
+      sessionId: sid,
       text,
       from: "user",
       createdAt: Date.now(),
@@ -102,12 +114,14 @@ export default function ChatWidget() {
       const res = await fetch("/api/chat/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, message: text }),
+        body: JSON.stringify({ sessionId: sid, message: text }),
       });
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send message.");
+      }
 
       if (data.message) {
         setMessages((prev) =>
@@ -118,9 +132,12 @@ export default function ChatWidget() {
           data.message.createdAt
         );
       }
-    } catch {
+    } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       setInput(text);
+      setError(
+        err instanceof Error ? err.message : "Failed to send. Please try again."
+      );
     } finally {
       setSending(false);
     }
@@ -180,6 +197,9 @@ export default function ChatWidget() {
           </div>
 
           <form onSubmit={handleSend} className="border-t border-gray-200 bg-white p-3">
+            {error && (
+              <p className="mb-2 text-xs text-red-600">{error}</p>
+            )}
             <div className="flex items-end gap-2">
               <textarea
                 value={input}
@@ -187,7 +207,7 @@ export default function ChatWidget() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    handleSend(e);
+                    void handleSend();
                   }
                 }}
                 placeholder="Type your message..."
